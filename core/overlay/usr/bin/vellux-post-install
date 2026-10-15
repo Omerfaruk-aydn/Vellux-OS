@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Vellux OS - kurulumdan hemen sonra, hedef sistemin icinde (chroot) calisir.
+set +e
+
+log() { echo "[vellux-post-install] $*"; }
+
+# 1) Live oturumunun ayricaliklari kurulu sisteme tasinmasin
+rm -f /etc/sudoers.d/99-vellux-live
+if getent passwd live >/dev/null 2>&1; then
+    userdel -r live >/dev/null 2>&1
+fi
+rm -rf /home/live
+log "live kullanicisi ve sudo muafiyeti kaldirildi."
+
+# 2) Makine kimligi her kurulumda benzersiz olsun (machineid modulu de dokunur)
+rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+
+# 3) Surucu kurulumu ilk acilista tekrar degerlendirilsin
+mkdir -p /var/lib/vellux
+rm -f /var/lib/vellux/driver-setup.done
+
+# 4) Guvenlik duvari ve AppArmor acik gelsin
+if [ -f /etc/ufw/ufw.conf ]; then
+    sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
+fi
+systemctl enable ufw.service apparmor.service >/dev/null 2>&1
+
+# 5) Kurulum sihirbazi kurulu sistemde gerekli degil
+rm -f /usr/share/applications/vellux-installer.desktop
+DEBIAN_FRONTEND=noninteractive apt-get -y -q purge calamares >/dev/null 2>&1
+DEBIAN_FRONTEND=noninteractive apt-get -y -q autoremove --purge >/dev/null 2>&1
+
+# 6) Ilk geri alma noktasi (Btrfs ise)
+/usr/bin/vellux-update snapshot --label "kurulum-sonrasi" >/dev/null 2>&1
+
+log "tamamlandi."
+exit 0

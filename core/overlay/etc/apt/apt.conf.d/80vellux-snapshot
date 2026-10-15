@@ -1,0 +1,2 @@
+// Her paket islemi oncesi otomatik geri alinabilir anlik goruntu (Btrfs kurulumlarda)
+DPkg::Pre-Invoke { "[ -x /usr/bin/vellux-update ] && /usr/bin/vellux-update snapshot --auto || true"; };

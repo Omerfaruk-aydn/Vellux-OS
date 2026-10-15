@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Vellux OS - oturum baslatici (greetd / agreety tarafindan kullanicinin kendi oturumunda calistirilir)
+set -u
+
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=Vellux
+export XDG_SESSION_DESKTOP=Vellux
+export MOZ_ENABLE_WAYLAND=1
+
+# XDG kullanici klasorleri (Masaustu, Belgeler, Indirilenler ...)
+command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update >/dev/null 2>&1 || true
+
+# Kullanici yapilandirmasi yoksa sistem varsayilanlarini kopyala
+mkdir -p "$HOME/.config"
+
+exec dbus-run-session -- /usr/bin/vellux-compositor

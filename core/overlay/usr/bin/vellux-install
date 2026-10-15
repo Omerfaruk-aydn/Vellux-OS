@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Vellux OS - kurulum sihirbazini (Calamares) baslatir.
+# Live oturumda calisir; Wayland ekranina root olarak baglanir.
+set -eu
+
+if ! grep -q 'boot=live' /proc/cmdline; then
+    echo "Vellux Installer yalnizca live ortamda calisir." >&2
+    exit 1
+fi
+
+UID_NUM="$(id -u)"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${UID_NUM}}"
+SOCKET="${WAYLAND_DISPLAY:-wayland-1}"
+
+exec sudo -E env \
+    XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+    WAYLAND_DISPLAY="${SOCKET}" \
+    QT_QPA_PLATFORM="wayland;xcb" \
+    QT_QPA_PLATFORMTHEME= \
+    calamares -d

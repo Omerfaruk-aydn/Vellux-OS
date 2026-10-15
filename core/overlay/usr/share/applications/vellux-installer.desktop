@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Vellux OS'u Kur
+Name[en]=Install Vellux OS
+Comment=Vellux OS'u bilgisayariniza kalici olarak kurun
+Exec=/usr/bin/vellux-install
+Icon=system-software-install
+Terminal=false
+Categories=System;

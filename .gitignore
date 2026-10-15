@@ -27,3 +27,9 @@ Thumbs.db
 *.squashfs
 initramfs.cpio.gz
 rootfs/
+build/
+rootfs/
+iso_root/
+dist/
+bin-artifacts/
+vm_screen.png

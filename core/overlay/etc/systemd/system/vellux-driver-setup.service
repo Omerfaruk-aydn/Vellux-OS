@@ -1,0 +1,14 @@
+[Unit]
+Description=Vellux donanim surucu kurulumu (NVIDIA vb.)
+After=network-online.target
+Wants=network-online.target
+ConditionKernelCommandLine=!boot=live
+ConditionPathExists=!/var/lib/vellux/driver-setup.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/vellux-driver-setup
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target

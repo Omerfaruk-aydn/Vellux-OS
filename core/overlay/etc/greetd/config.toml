@@ -1,0 +1,7 @@
+# Kurulu sistem giris yoneticisi (live oturumda calismaz)
+[terminal]
+vt = 1
+
+[default_session]
+command = "agreety --cmd /usr/bin/vellux-session"
+user = "_greetd"

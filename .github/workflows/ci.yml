@@ -46,20 +46,53 @@ jobs:
             target/release/vellux-settings
 
   # ============================================================================
-  # STEP 2: ASSEMBLE FULL PRODUCTION ROOTFS (KERNEL + MESA + DRIVERS) & MASTER ISO
+  # STEP 2: SYSTEM LAYER VALIDATION (static checks, fast feedback)
   # ============================================================================
-  master-live-iso:
-    name: Build Live Linux Rootfs & Master ISO
-    needs: build-rust-subsystems
+  validate-system-layer:
+    name: Validate System Layer (scripts, configs, assets)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Install ISO Mastering Toolchain & Debootstrap
+      - name: Shell syntax and ShellCheck
         run: |
           sudo apt-get update
-          sudo apt-get install -y squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools debootstrap
+          sudo apt-get install -y shellcheck
+          for f in core/boot/*.sh core/overlay/usr/bin/vellux-*; do
+            echo "bash -n $f"; bash -n "$f"
+          done
+          shellcheck -S error core/boot/build-iso.sh core/overlay/usr/bin/vellux-*
+
+      - name: Configuration syntax (YAML / JSON)
+        run: python3 tools/validate-configs.py
+
+      - name: Generate visual assets (Plymouth, Calamares)
+        run: |
+          python3 core/boot/plymouth/gen-assets.py build/assets
+          test -s build/assets/plymouth/logo.png
+          test -s build/assets/calamares/welcome.png
+
+  # ============================================================================
+  # STEP 3: ASSEMBLE FULL PRODUCTION ROOTFS & MASTER ISO
+  # ============================================================================
+  master-live-iso:
+    name: Build Vellux OS Base System & Master ISO
+    needs: [build-rust-subsystems, validate-system-layer]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Install ISO Mastering Toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools debootstrap rsync python3
 
       - name: Download Compiled Native Binaries
         uses: actions/download-artifact@v4
@@ -67,119 +100,40 @@ jobs:
           name: vellux-native-binaries
           path: bin-artifacts
 
-      - name: Make Binaries Executable
-        run: chmod +x bin-artifacts/*
+      - name: Make Scripts and Binaries Executable
+        run: chmod +x bin-artifacts/* core/boot/*.sh
 
-      - name: Bootstrap Full Production Rootfs with Linux Kernel & Drivers
-        run: |
-          chmod +x core/boot/bootstrap-rootfs.sh
-          ./core/boot/bootstrap-rootfs.sh ./rootfs
-
-      - name: Install Vellux Native Binaries, Services & Shaders into Rootfs
-        run: |
-          # Install compiled native binaries
-          sudo cp bin-artifacts/vellux-pkg rootfs/usr/bin/
-          sudo cp bin-artifacts/vellux-compositor rootfs/usr/bin/
-          sudo cp bin-artifacts/vellux-shell rootfs/usr/bin/
-          sudo cp bin-artifacts/vellux-term rootfs/usr/bin/
-          sudo cp bin-artifacts/vellux-files rootfs/usr/bin/
-          sudo cp bin-artifacts/vellux-settings rootfs/usr/bin/
-
-          # Install compositor configurations, waybar, wofi & GLSL shaders
-          sudo mkdir -p rootfs/etc/vellux/{shaders,waybar,wofi}
-          sudo cp compositor/config/sway.conf rootfs/etc/vellux/compositor.conf
-          sudo cp compositor/config/vellux-comp.conf rootfs/etc/vellux/
-          sudo cp compositor/shaders/dual_kawase.frag rootfs/etc/vellux/shaders/
-          sudo cp shell/waybar/config.jsonc rootfs/etc/vellux/waybar/
-          sudo cp shell/waybar/style.css rootfs/etc/vellux/waybar/
-          sudo cp shell/wofi/config rootfs/etc/vellux/wofi/
-          sudo cp shell/wofi/style.css rootfs/etc/vellux/wofi/
-
-          # Setup user permissions
-          sudo chroot rootfs chown -R vellux:vellux /home/vellux || true
-
-          # Install systemd session unit for automatic graphical login
-          sudo cp core/services/vellux-session.service rootfs/etc/systemd/system/
-          sudo chroot rootfs systemctl enable vellux-session.service || true
-          sudo chroot rootfs systemctl set-default graphical.target || true
-
-          # Basic system identification
-          cat << 'EOF' | sudo tee rootfs/etc/os-release > /dev/null
-          NAME="Vellux OS"
-          PRETTY_NAME="Vellux OS 1.0 (Wayland 144Hz Fluid Glass)"
-          ID=vellux
-          ID_LIKE=linux
-          VERSION="1.0"
-          HOME_URL="https://github.com/Omerfaruk-aydn/Vellux-OS"
-          EOF
-
-      - name: Build Hybrid UEFI/BIOS ISO Image
-        run: |
-          mkdir -p iso_root/boot/grub
-          
-          # Compress rootfs to Zstandard SquashFS
-          sudo mksquashfs rootfs iso_root/live/filesystem.squashfs -comp zstd -Xcompression-level 19
-
-          # Write GRUB configuration
-          cat << 'EOF' > iso_root/boot/grub/grub.cfg
-          set default=0
-          set timeout=5
-          insmod efi_gop
-          insmod font
-          insmod gfxterm
-          set gfxmode=auto
-          terminal_output gfxterm
-
-          menuentry "Start Vellux OS 1.0 (Wayland 144Hz Fluid Glass)" {
-              echo "Booting Vellux OS Production Kernel..."
-              linux /live/vmlinuz boot=live console=tty0
-              initrd /live/initrd.img
-          }
-
-          menuentry "Start Vellux OS (Safe Graphics / Software Fallback)" {
-              linux /live/vmlinuz boot=live nomodeset console=tty0
-              initrd /live/initrd.img
-          }
-          EOF
-
-          # Generate hybrid ISO using xorriso / grub-mkrescue
-          mkdir -p dist
-          sudo grub-mkrescue -o dist/Vellux-OS-1.0-x86_64.iso iso_root
+      - name: Build Rootfs and ISO (core/boot/build-iso.sh)
+        run: ./core/boot/build-iso.sh
 
       - name: Upload Finished ISO Image as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Vellux-OS-Live-ISO
-          path: dist/Vellux-OS-1.0-x86_64.iso
+          path: dist/Vellux-OS-1.1-x86_64.iso
 
       - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0-full
-          name: "Vellux OS 1.0.0 Full Production Live Release"
+          tag_name: v1.1.0-base
+          name: "Vellux OS 1.1.0 Base System"
           body: |
-            ### 🌌 Vellux OS 1.0.0 Production Live ISO
+            ### Vellux OS 1.1.0 - Layer 1: System Foundation
 
-            This is a complete, bootable Linux operating system image ready to flash onto a USB flash drive (via BalenaEtcher or Rufus) or run directly in VirtualBox / QEMU / VMware.
+            Bootable live + installable ISO (UEFI and BIOS).
 
-            #### 🛠 Integrated Core Stack:
-            - **Kernel:** Linux 6.8+ Generic with DRM/KMS, live-boot & Zstandard SquashFS
-            - **Graphics:** Mesa 24+ Vulkan/OpenGL drivers (Intel Iris/Xe, AMD Radeon, Nvidia Nouveau)
-            - **Display Server:** Pure Wayland native direct-scanout compositor (144Hz VRR)
-            - **Shaders:** Hardware-accelerated Dual-Kawase GLSL background blur
-            - **Audio:** PipeWire & WirePlumber ultra-low-latency sound architecture
-            - **Network:** NetworkManager & wpa_supplicant
-            - **Package Engine:** `vellux-pkg` with SQLite3 WAL database & topological dependency resolver
-            - **Native Apps Suite:**
-              * `vellux-term`: GPU-accelerated glass terminal
-              * `vellux-files`: Native glass file manager (Finder)
-              * `vellux-settings`: Hardware & visual display preferences
-            
-            #### 🔑 Default Credentials:
-            - **Username:** `vellux`
-            - **Password:** `vellux` (Auto-login enabled into Wayland session)
-          files: dist/Vellux-OS-1.0-x86_64.iso
+            - **Kernel:** Linux 6.8 with modules-extra, full linux-firmware, CPU microcode
+            - **Drivers:** Mesa Vulkan/GL, Wi-Fi/Bluetooth stack, PipeWire audio, VirtualBox/VMware/QEMU guest tools, automatic NVIDIA driver setup
+            - **Installer:** Calamares with Vellux branding - Btrfs subvolumes, optional LUKS full-disk encryption, GRUB (UEFI + Secure Boot shim)
+            - **Security:** AppArmor, UFW firewall (default deny incoming), kernel hardening sysctls, live sudo removed on install
+            - **Updates:** `vellux-update` with automatic Btrfs snapshots before every package operation and one-command rollback
+            - **Boot:** Plymouth Vellux theme (animated logo, progress bar, LUKS passphrase prompt), quiet GRUB
+            - **Memory:** zram compressed swap, systemd-oomd
+            - **Browser:** Firefox from the Mozilla apt repository (no snap)
+
+            Live session user: `live` / password `live`. Run `vellux-install` (or the Install button in the top bar) to install.
+          files: dist/Vellux-OS-1.1-x86_64.iso
           draft: false
           prerelease: false
         env:

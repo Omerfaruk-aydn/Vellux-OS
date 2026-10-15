@@ -1,14 +1,8 @@
 [Plymouth Theme]
-Name=Vellux Glow
-Description=Flicker-Free Pure Wayland Plymouth Theme for Vellux OS
-ModuleName=two-step
+Name=Vellux
+Description=Vellux OS acilis ekrani: parlayan logo, ince ilerleme cubugu, sifre istemi
+ModuleName=script
 
-[two-step]
+[script]
 ImageDir=/usr/share/plymouth/themes/vellux
-HorizontalAlignment=.5
-VerticalAlignment=.5
-Transition=cross-fade
-TransitionDuration=0.35
-BackgroundStartColor=0x05070e
-BackgroundEndColor=0x0a0d18
-ProgressBarShowPercent=false
+ScriptFile=/usr/share/plymouth/themes/vellux/vellux.script

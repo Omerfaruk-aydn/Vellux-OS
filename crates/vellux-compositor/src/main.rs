@@ -66,9 +66,17 @@ async fn main() -> Result<()> {
 
     info!("Spawning Wayland display server: {} --config /etc/vellux/compositor.conf", compositor_cmd);
 
-    let mut child = Command::new(compositor_cmd)
-        .arg("--config")
-        .arg("/etc/vellux/compositor.conf")
+    let mut command = Command::new(compositor_cmd);
+    command.arg("--config").arg("/etc/vellux/compositor.conf");
+
+    // NVIDIA proprietary driver: sway requires an explicit opt-in.
+    if std::path::Path::new("/proc/driver/nvidia").exists() {
+        info!("NVIDIA proprietary driver detected; enabling --unsupported-gpu");
+        command.arg("--unsupported-gpu");
+        command.env("WLR_NO_HARDWARE_CURSORS", "1");
+    }
+
+    let mut child = command
         .spawn()
         .context("Failed to spawn Wayland compositor backend")?;
 

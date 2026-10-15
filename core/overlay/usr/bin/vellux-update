@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# vellux-update - Vellux OS sistem guncelleme ve geri alma araci
+#
+#   vellux-update status              Kok dosya sistemi ve geri alma durumu
+#   vellux-update check               Bekleyen guncellemeleri listeler
+#   vellux-update upgrade             Anlik goruntu alir, sonra sistemi gunceller
+#   vellux-update snapshot [--label X] [--auto]
+#   vellux-update list                Geri alma noktalarini listeler
+#   vellux-update prune               Eski anlik goruntulari siler
+#   vellux-update rollback <id>       Sistemi anlik goruntuye dondurur (yeniden baslatma ister)
+#
+# Anlik goruntuler yalnizca kok dizin Btrfs ise (Vellux kurulumunun varsayilani)
+# alinabilir. /home ayri alt birimde oldugu icin geri almada kullanici verisi korunur.
+# ==============================================================================
+set -euo pipefail
+
+SNAP_DIR="/.snapshots"
+KEEP="${VELLUX_SNAPSHOT_KEEP:-8}"
+THROTTLE_SECONDS="${VELLUX_SNAPSHOT_THROTTLE:-300}"
+
+say()  { printf '\033[38;2;56;189;248m==>\033[0m %s\n' "$*"; }
+warn() { printf '\033[33m!!\033[0m  %s\n' "$*" >&2; }
+die()  { printf '\033[31mHATA:\033[0m %s\n' "$*" >&2; exit 1; }
+
+need_root() { [ "$(id -u)" -eq 0 ] || die "Bu komut root yetkisi gerektirir (sudo kullanin)."; }
+
+is_btrfs_root() {
+    [ "$(findmnt -no FSTYPE / 2>/dev/null || true)" = "btrfs" ]
+}
+
+snapshots_ready() {
+    is_btrfs_root && mountpoint -q "${SNAP_DIR}" 2>/dev/null
+}
+
+latest_snapshot_epoch() {
+    local newest
+    newest="$(ls -1 "${SNAP_DIR}" 2>/dev/null | sort | tail -n 1 || true)"
+    [ -n "${newest}" ] || { echo 0; return; }
+    stat -c %Y "${SNAP_DIR}/${newest}" 2>/dev/null || echo 0
+}
+
+cmd_snapshot() {
+    local auto=0 label=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --auto) auto=1 ;;
+            --label) shift; label="${1:-}" ;;
+            *) die "Bilinmeyen secenek: $1" ;;
+        esac
+        shift || true
+    done
+
+    if ! snapshots_ready; then
+        [ "${auto}" -eq 1 ] && return 0
+        warn "Anlik goruntu alinamadi: kok dizin Btrfs degil veya ${SNAP_DIR} bagli degil."
+        return 1
+    fi
+    need_root
+
+    if [ "${auto}" -eq 1 ]; then
+        local now last
+        now="$(date +%s)"; last="$(latest_snapshot_epoch)"
+        if [ $((now - last)) -lt "${THROTTLE_SECONDS}" ]; then
+            return 0
+        fi
+        label="${label:-paket-islemi}"
+    fi
+
+    local id name
+    id="$(date +%Y%m%d-%H%M%S)"
+    name="${id}"
+    [ -n "${label}" ] && name="${id}_${label// /-}"
+    btrfs subvolume snapshot -r / "${SNAP_DIR}/${name}" >/dev/null
+    [ "${auto}" -eq 1 ] || say "Geri alma noktasi olusturuldu: ${name}"
+    cmd_prune quiet
+}
+
+cmd_list() {
+    snapshots_ready || die "Anlik goruntu altyapisi yok (kok dizin Btrfs degil)."
+    say "Geri alma noktalari (${SNAP_DIR}):"
+    ls -1 "${SNAP_DIR}" | sort -r | sed 's/^/   /'
+}
+
+cmd_prune() {
+    local quiet="${1:-}"
+    snapshots_ready || return 0
+    need_root
+    local count
+    count="$(ls -1 "${SNAP_DIR}" | wc -l)"
+    if [ "${count}" -le "${KEEP}" ]; then return 0; fi
+    ls -1 "${SNAP_DIR}" | sort | head -n "$((count - KEEP))" | while read -r old; do
+        btrfs subvolume delete "${SNAP_DIR}/${old}" >/dev/null
+        [ "${quiet}" = "quiet" ] || say "Silindi: ${old}"
+    done
+}
+
+cmd_check() {
+    need_root
+    say "Paket dizinleri guncelleniyor..."
+    apt-get update -qq
+    local n
+    n="$(apt-get -s -o Debug::NoLocking=1 dist-upgrade | grep -c '^Inst ' || true)"
+    if [ "${n}" -eq 0 ]; then
+        say "Sistem guncel."
+    else
+        say "${n} paket guncellenebilir:"
+        apt list --upgradable 2>/dev/null | tail -n +2 | sed 's/^/   /'
+    fi
+}
+
+cmd_upgrade() {
+    need_root
+    export DEBIAN_FRONTEND=noninteractive
+    if snapshots_ready; then
+        cmd_snapshot --label "guncelleme-oncesi"
+    else
+        warn "Anlik goruntu alinamiyor; guncelleme geri alma noktasi olmadan devam ediyor."
+    fi
+    say "Paket dizinleri guncelleniyor..."
+    apt-get update
+    say "Sistem guncelleniyor..."
+    apt-get -y -o Dpkg::Options::=--force-confold full-upgrade
+    apt-get -y autoremove --purge
+    if command -v flatpak >/dev/null 2>&1; then
+        say "Flatpak uygulamalari guncelleniyor..."
+        flatpak update -y --noninteractive || true
+    fi
+    say "Guncelleme tamamlandi. Cekirdek guncellendiyse yeniden baslatin."
+}
+
+root_device() {
+    local src
+    src="$(findmnt -no SOURCE /)"
+    echo "${src%%\[*}"
+}
+
+cmd_rollback() {
+    local target="${1:-}"
+    [ -n "${target}" ] || die "Kullanim: vellux-update rollback <id>   (ids: vellux-update list)"
+    snapshots_ready || die "Geri alma yalnizca Btrfs kurulumlarda desteklenir."
+    need_root
+    [ -d "${SNAP_DIR}/${target}" ] || die "Geri alma noktasi bulunamadi: ${target}"
+
+    local dev top ts
+    dev="$(root_device)"
+    top="$(mktemp -d /run/vellux-rollback.XXXXXX)"
+    ts="$(date +%Y%m%d-%H%M%S)"
+    mount -o subvolid=5 "${dev}" "${top}"
+    trap 'umount "${top}" 2>/dev/null || true; rmdir "${top}" 2>/dev/null || true' EXIT
+
+    [ -d "${top}/@" ] || die "Beklenen '@' alt birimi bulunamadi; Vellux disk duzeni degil."
+    [ -d "${top}/@snapshots/${target}" ] || die "Anlik goruntu top-level icinde bulunamadi."
+
+    say "Mevcut sistem '@broken-${ts}' olarak saklaniyor..."
+    btrfs subvolume snapshot "${top}/@snapshots/${target}" "${top}/@rollback-new" >/dev/null
+    mv "${top}/@" "${top}/@broken-${ts}"
+    mv "${top}/@rollback-new" "${top}/@"
+
+    say "Geri alma hazir. Sistemi yeniden baslatinca '${target}' durumuna donulur."
+    say "Eski durum '@broken-${ts}' icinde; gerekirse silebilirsiniz."
+}
+
+cmd_status() {
+    say "Vellux OS $(. /etc/os-release && echo "${VERSION:-}")"
+    echo "   Cekirdek        : $(uname -r)"
+    echo "   Kok dosya sist. : $(findmnt -no FSTYPE /) ($(findmnt -no SOURCE /))"
+    if findmnt -no FSTYPE / | grep -q '^overlay\|squashfs'; then
+        echo "   Mod             : Live oturum (kalici degil)"
+    fi
+    if snapshots_ready; then
+        echo "   Geri alma       : etkin ($(ls -1 "${SNAP_DIR}" | wc -l) nokta, en fazla ${KEEP})"
+    else
+        echo "   Geri alma       : devre disi (Btrfs + ${SNAP_DIR} gerekir)"
+    fi
+    if [ -d /sys/firmware/efi ]; then echo "   Onyukleme       : UEFI"; else echo "   Onyukleme       : BIOS"; fi
+    if [ -r /sys/kernel/security/lsm ]; then echo "   Guvenlik (LSM)  : $(cat /sys/kernel/security/lsm)"; fi
+    if command -v ufw >/dev/null 2>&1; then echo "   Guvenlik duvari : $(ufw status 2>/dev/null | head -n 1 || echo bilinmiyor)"; fi
+}
+
+usage() { sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; }
+
+case "${1:-}" in
+    status)   shift; cmd_status "$@" ;;
+    check)    shift; cmd_check "$@" ;;
+    upgrade)  shift; cmd_upgrade "$@" ;;
+    snapshot) shift; cmd_snapshot "$@" ;;
+    list)     shift; cmd_list "$@" ;;
+    prune)    shift; cmd_prune "$@" ;;
+    rollback) shift; cmd_rollback "$@" ;;
+    -h|--help|help|"") usage ;;
+    *) usage; exit 2 ;;
+esac

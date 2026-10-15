@@ -1,0 +1,111 @@
+# Vellux OS - Plymouth script temasi
+# Parlayan logo (nefes animasyonu), ince ilerleme cubugu, disk sifresi (LUKS) istemi,
+# mesaj satiri. Yazi tipi icin Plymouth'un varsayilan "Sans" ailesi kullanilir.
+
+Window.SetBackgroundTopColor(0.02, 0.027, 0.055);
+Window.SetBackgroundBottomColor(0.04, 0.05, 0.09);
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+
+# ---- Logo ---------------------------------------------------------------
+logo_image = Image("logo.png");
+logo_sprite = Sprite(logo_image);
+logo_x = screen_w / 2 - logo_image.GetWidth() / 2;
+logo_y = screen_h / 2 - logo_image.GetHeight() / 2 - screen_h * 0.04;
+logo_sprite.SetPosition(logo_x, logo_y, 10);
+
+# ---- Ilerleme cubugu ------------------------------------------------------
+bar_w = Math.Int(screen_w * 0.16);
+if (bar_w < 160) bar_w = 160;
+bar_h = 4;
+bar_x = screen_w / 2 - bar_w / 2;
+bar_y = logo_y + logo_image.GetHeight() + screen_h * 0.05;
+
+bar_bg_sprite = Sprite(Image("bar_bg.png").Scale(bar_w, bar_h));
+bar_bg_sprite.SetPosition(bar_x, bar_y, 20);
+
+bar_fill_source = Image("bar_fill.png");
+bar_fill_sprite = Sprite();
+bar_fill_sprite.SetPosition(bar_x, bar_y, 21);
+bar_fill_sprite.SetOpacity(0);
+
+# ---- Sifre istemi ---------------------------------------------------------
+prompt_sprite = Sprite();
+bullet_sprite = Sprite();
+prompt_sprite.SetOpacity(0);
+bullet_sprite.SetOpacity(0);
+
+# ---- Mesaj satiri ---------------------------------------------------------
+message_sprite = Sprite();
+message_sprite.SetOpacity(0);
+
+# ---- Animasyon: logo nefes alir ---------------------------------------------
+tick = 0;
+fun refresh_callback ()
+  {
+    tick++;
+    wave = Math.Sin(tick / 22.0);
+    logo_sprite.SetOpacity(0.82 + 0.18 * wave);
+  }
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# ---- Ilerleme --------------------------------------------------------------
+fun progress_callback (duration, progress)
+  {
+    fill_w = Math.Int(bar_w * progress);
+    if (fill_w < 1) fill_w = 1;
+    bar_fill_sprite.SetImage(bar_fill_source.Scale(fill_w, bar_h));
+    bar_fill_sprite.SetOpacity(1);
+  }
+Plymouth.SetBootProgressFunction(progress_callback);
+
+# ---- Normal gorunum ve sifre ekrani -----------------------------------------
+fun display_normal_callback ()
+  {
+    prompt_sprite.SetOpacity(0);
+    bullet_sprite.SetOpacity(0);
+  }
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+fun display_password_callback (prompt, bullets)
+  {
+    prompt_image = Image.Text(prompt, 0.90, 0.93, 1.0, 1.0);
+    prompt_sprite.SetImage(prompt_image);
+    prompt_sprite.SetPosition(screen_w / 2 - prompt_image.GetWidth() / 2, bar_y + 40, 30);
+    prompt_sprite.SetOpacity(1);
+
+    dots = "";
+    for (i = 0; i < bullets; i++) dots += "*";
+    dots_image = Image.Text(dots, 0.22, 0.74, 0.97, 1.0);
+    bullet_sprite.SetImage(dots_image);
+    bullet_sprite.SetPosition(screen_w / 2 - dots_image.GetWidth() / 2, bar_y + 70, 30);
+    bullet_sprite.SetOpacity(1);
+  }
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun display_question_callback (prompt, entry)
+  {
+    prompt_image = Image.Text(prompt + " " + entry, 0.90, 0.93, 1.0, 1.0);
+    prompt_sprite.SetImage(prompt_image);
+    prompt_sprite.SetPosition(screen_w / 2 - prompt_image.GetWidth() / 2, bar_y + 40, 30);
+    prompt_sprite.SetOpacity(1);
+  }
+Plymouth.SetDisplayQuestionFunction(display_question_callback);
+
+# ---- Mesajlar ---------------------------------------------------------------
+fun message_callback (text)
+  {
+    message_image = Image.Text(text, 0.65, 0.71, 0.99, 1.0);
+    message_sprite.SetImage(message_image);
+    message_sprite.SetPosition(screen_w / 2 - message_image.GetWidth() / 2, screen_h - 60, 30);
+    message_sprite.SetOpacity(1);
+  }
+Plymouth.SetMessageFunction(message_callback);
+
+# ---- Cikis: yumusak kararma -------------------------------------------------
+fun quit_callback ()
+  {
+    logo_sprite.SetOpacity(1);
+  }
+Plymouth.SetQuitFunction(quit_callback);

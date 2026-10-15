@@ -1,11 +1,13 @@
 [Unit]
 Description=Vellux Wayland Compositor Session
+# Live (boot=live) oturumu: otomatik giris. Kurulu sistemde greetd calisir.
+ConditionKernelCommandLine=boot=live
 After=systemd-user-sessions.service plymouth-quit-wait.service
 Conflicts=getty@tty1.service
 
 [Service]
-User=vellux
-WorkingDirectory=/home/vellux
+User=live
+WorkingDirectory=/home/live
 PAMName=login
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=Vellux

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Vellux OS - ilk acilista uygun donanim suruculerini kurar.
+# - NVIDIA GPU varsa Ubuntu'nun onerdigi proprietary surucuyu kurar.
+# Ag yoksa isaret dosyasi birakilmaz; bir sonraki acilista tekrar denenir.
+set -u
+
+STATE_DIR=/var/lib/vellux
+MARK="${STATE_DIR}/driver-setup.done"
+mkdir -p "${STATE_DIR}"
+
+log() { echo "[vellux-driver-setup] $*"; }
+
+if ! command -v lspci >/dev/null 2>&1; then
+    log "lspci yok, atlandi."
+    touch "${MARK}"
+    exit 0
+fi
+
+if lspci -nn | grep -Eqi 'VGA|3D|Display' && lspci -nn | grep -Eqi '\[10de:'; then
+    log "NVIDIA GPU algilandi."
+    if ! getent hosts archive.ubuntu.com >/dev/null 2>&1; then
+        log "Ag erisimi yok; sonraki acilista tekrar denenecek."
+        exit 0
+    fi
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq || true
+    if command -v ubuntu-drivers >/dev/null 2>&1 && ubuntu-drivers install; then
+        log "NVIDIA surucusu kuruldu. Degisikligin gecerli olmasi icin yeniden baslatin."
+        touch "${MARK}"
+        exit 0
+    fi
+    log "NVIDIA surucu kurulumu basarisiz oldu; nouveau ile devam ediliyor."
+    exit 0
+fi
+
+log "Ozel surucu gerektiren GPU bulunmadi."
+touch "${MARK}"
+exit 0

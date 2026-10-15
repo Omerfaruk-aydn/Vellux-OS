@@ -8,6 +8,7 @@
     "modules-left": [
         "custom/logo",
         "custom/browser",
+        "custom/installer",
         "sway/window"
     ],
     "modules-center": [
@@ -28,6 +29,14 @@
         "format": " 🌐 Web ",
         "tooltip": "Launch Web Browser (Google)",
         "on-click": "sh -c 'which chromium-browser chromium google-chrome firefox 2>/dev/null | head -n 1 | xargs -r -I {} {} https://www.google.com'"
+    },
+    "custom/installer": {
+        "format": " 💿 {} ",
+        "exec-if": "grep -q boot=live /proc/cmdline",
+        "exec": "echo 'Install Vellux OS'",
+        "interval": "once",
+        "tooltip": false,
+        "on-click": "/usr/bin/vellux-install"
     },
     "sway/window": {
         "max-length": 50,

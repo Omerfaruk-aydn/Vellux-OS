@@ -1,53 +1,104 @@
 #!/usr/bin/env bash
-
 # ==============================================================================
-# VELLUX OS LIVE ISO BUILD PIPELINE
-# Generates a bootable hybrid UEFI/BIOS ISO with modern glass installer
+# VELLUX OS - ISO URETIM HATTI (CI ve yerel kullanim icin tek kaynak)
+#
+# 1) gorsel varliklari uretir (Plymouth / Calamares)
+# 2) taban sistemi (rootfs) olusturur  -> bootstrap-rootfs.sh
+# 3) Vellux yerel ikili dosyalarini ve yapilandirmayi yerlestirir
+# 4) SquashFS (zstd) + hibrit UEFI/BIOS ISO uretir
+#
+# Ortam degiskenleri:
+#   BIN_DIR   derlenmis vellux-* ikili dosyalarinin dizini (varsayilan: bin-artifacts)
+#   OUT_ISO   cikti yolu (varsayilan: dist/Vellux-OS-1.1-x86_64.iso)
 # ==============================================================================
-
 set -euo pipefail
 
-DISTRO_NAME="Vellux-OS"
-VERSION="1.0.0-PROPOSAL"
-ARCH="x86_64"
-WORK_DIR="/tmp/vellux-iso-build"
-OUT_DIR="./dist"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "${REPO_ROOT}"
 
-echo -e "\e[38;2;56;189;248m=== Building ${DISTRO_NAME} Live ISO v${VERSION} (${ARCH}) ===\e[0m"
+ROOTFS_DIR="${ROOTFS_DIR:-${REPO_ROOT}/rootfs}"
+BIN_DIR="${BIN_DIR:-${REPO_ROOT}/bin-artifacts}"
+OUT_ISO="${OUT_ISO:-${REPO_ROOT}/dist/Vellux-OS-1.1-x86_64.iso}"
+ASSET_DIR="${REPO_ROOT}/build/assets"
+export REPO_ROOT ASSET_DIR
 
-# Step 1: Initialize temporary work directory
-mkdir -p "${WORK_DIR}"/{rootfs,iso/boot/grub,iso/live}
-mkdir -p "${OUT_DIR}"
+info() { printf '\033[38;2;56;189;248m%s\033[0m\n' "$*"; }
 
-# Step 2: Assemble base rootfs using vellux-pkg
-echo -e "\e[34m[1/5]\e[0m Installing base system packages into live rootfs..."
-# vellux-pkg install --root="${WORK_DIR}/rootfs" base-system linux-vellux vellux-shell
+info "=== [1/4] Gorsel varliklar ==="
+python3 core/boot/plymouth/gen-assets.py "${ASSET_DIR}"
 
-# Step 3: Compress rootfs into SquashFS with Zstandard max compression
-echo -e "\e[34m[2/5]\e[0m Compressing rootfs into SquashFS with ZSTD..."
-# mksquashfs "${WORK_DIR}/rootfs" "${WORK_DIR}/iso/live/filesystem.squashfs" -comp zstd -Xcompression-level 19
+info "=== [2/4] Taban sistem (Katman 1) ==="
+sudo rm -rf iso_root && mkdir -p iso_root/boot/grub iso_root/live
+./core/boot/bootstrap-rootfs.sh "${ROOTFS_DIR}"
 
-# Step 4: Configure GRUB bootloader for dual UEFI and BIOS compatibility
-echo -e "\e[34m[3/5]\e[0m Writing hybrid UEFI/BIOS GRUB boot configuration..."
-cat << 'EOF' > "${WORK_DIR}/iso/boot/grub/grub.cfg"
-set default="0"
-set timeout=5
+info "=== [3/4] Vellux ikili dosyalari ve masaustu yapilandirmasi ==="
+for b in vellux-pkg vellux-compositor vellux-shell vellux-term vellux-files vellux-settings; do
+    if [ -f "${BIN_DIR}/${b}" ]; then
+        sudo install -m 0755 "${BIN_DIR}/${b}" "${ROOTFS_DIR}/usr/bin/${b}"
+    else
+        echo "UYARI: ${BIN_DIR}/${b} bulunamadi" >&2
+    fi
+done
 
-insmod efi_gop
-insmod font
+sudo mkdir -p "${ROOTFS_DIR}/etc/vellux"/{shaders,waybar,wofi}
+sudo install -m 0644 compositor/config/sway.conf          "${ROOTFS_DIR}/etc/vellux/compositor.conf"
+sudo install -m 0644 compositor/config/vellux-comp.conf   "${ROOTFS_DIR}/etc/vellux/vellux-comp.conf"
+sudo install -m 0644 compositor/shaders/dual_kawase.frag  "${ROOTFS_DIR}/etc/vellux/shaders/dual_kawase.frag"
+sudo install -m 0644 shell/waybar/config.jsonc            "${ROOTFS_DIR}/etc/vellux/waybar/config.jsonc"
+sudo install -m 0644 shell/waybar/style.css               "${ROOTFS_DIR}/etc/vellux/waybar/style.css"
+sudo install -m 0644 shell/wofi/config                    "${ROOTFS_DIR}/etc/vellux/wofi/config"
+sudo install -m 0644 shell/wofi/style.css                 "${ROOTFS_DIR}/etc/vellux/wofi/style.css"
+sudo install -m 0644 core/services/vellux-session.service "${ROOTFS_DIR}/etc/systemd/system/vellux-session.service"
+
+sudo tee "${ROOTFS_DIR}/etc/os-release" >/dev/null <<'EOF'
+NAME="Vellux OS"
+PRETTY_NAME="Vellux OS 1.1"
+ID=vellux
+ID_LIKE="ubuntu debian"
+VERSION="1.1"
+VERSION_ID="1.1"
+VERSION_CODENAME=noble
+HOME_URL="https://github.com/Omerfaruk-aydn/Vellux-OS"
+SUPPORT_URL="https://github.com/Omerfaruk-aydn/Vellux-OS/issues"
+EOF
+sudo chroot "${ROOTFS_DIR}" chown -R live:live /home/live || true
+
+info "=== [4/4] SquashFS ve ISO ==="
+sudo rm -f iso_root/live/filesystem.squashfs
+sudo mksquashfs "${ROOTFS_DIR}" iso_root/live/filesystem.squashfs \
+    -comp zstd -Xcompression-level 19 -b 1M -noappend
+
+cat > iso_root/boot/grub/grub.cfg <<'EOF'
+set default=0
+set timeout=4
+insmod all_video
 insmod gfxterm
-
 set gfxmode=auto
 terminal_output gfxterm
+set color_normal=white/black
+set color_highlight=black/light-cyan
 
-menuentry "Start Vellux OS 1.0 (Pure Wayland - 120Hz Fluid Glass)" --class vellux --class gnu-linux --class os {
-    linux /boot/vmlinuz-vellux quiet splash loglevel=3 udev.log_priority=3 vt.global_cursor_default=0
-    initrd /boot/initramfs-vellux.img
+menuentry "Vellux OS 1.1" --class vellux {
+    linux  /live/vmlinuz boot=live quiet splash loglevel=3 vt.global_cursor_default=0
+    initrd /live/initrd.img
+}
+menuentry "Vellux OS 1.1 (Guvenli Grafik / nomodeset)" --class vellux {
+    linux  /live/vmlinuz boot=live nomodeset loglevel=4
+    initrd /live/initrd.img
+}
+menuentry "Vellux OS 1.1 (Ayrintili Onyukleme / Hata Ayiklama)" --class vellux {
+    linux  /live/vmlinuz boot=live loglevel=7 systemd.log_level=debug console=tty0
+    initrd /live/initrd.img
 }
 EOF
 
-# Step 5: Master hybrid bootable ISO using xorriso
-echo -e "\e[34m[4/5]\e[0m Mastering hybrid ISO with xorriso..."
-ISO_OUTPUT="${OUT_DIR}/${DISTRO_NAME}-${VERSION}-${ARCH}.iso"
-
-echo -e "\e[32m✔ [5/5] Vellux OS ISO successfully created: ${ISO_OUTPUT}\e[0m"
+mkdir -p "$(dirname "${OUT_ISO}")"
+sudo grub-mkrescue -o "${OUT_ISO}" iso_root -- -volid VELLUX_OS
+sudo chown "$(id -u):$(id -g)" "${OUT_ISO}"
+ls -lh "${OUT_ISO}"
+SIZE_BYTES="$(stat -c %s "${OUT_ISO}")"
+echo "ISO boyutu: ${SIZE_BYTES} bayt"
+if [ "${SIZE_BYTES}" -ge 2147483648 ]; then
+    echo "UYARI: ISO 2 GiB sinirini asiyor; GitHub Release varligi olarak yuklenemez." >&2
+fi
+info "=== ISO hazir: ${OUT_ISO} ==="
