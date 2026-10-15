@@ -68,6 +68,14 @@ sudo chroot "${ROOTFS_DIR}" /bin/bash -c "
         pipewire \
         wireplumber \
         network-manager \
+        iproute2 \
+        net-tools \
+        iputils-ping \
+        curl \
+        wget \
+        dnsutils \
+        isc-dhcp-client \
+        chromium-browser \
         fonts-inter \
         fonts-jetbrains-mono \
         ca-certificates
@@ -76,8 +84,18 @@ sudo chroot "${ROOTFS_DIR}" /bin/bash -c "
     echo "live-boot" >> /etc/initramfs-tools/modules
     update-initramfs -u -k all
 
+    # Configure NetworkManager & Netplan for automatic DHCP on all interfaces
+    mkdir -p /etc/netplan
+    cat << 'NETCFG' > /etc/netplan/01-network-manager-all.yaml
+network:
+  version: 2
+  renderer: NetworkManager
+NETCFG
+    chmod 600 /etc/netplan/01-network-manager-all.yaml
+
     # Enable NetworkManager & PipeWire
     systemctl enable NetworkManager.service || true
+    systemctl enable systemd-resolved.service || true
 
     # Clean package caches to minimize ISO size
     apt-get clean

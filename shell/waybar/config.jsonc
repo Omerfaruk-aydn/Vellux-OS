@@ -7,6 +7,7 @@
     "margin-right": 0,
     "modules-left": [
         "custom/logo",
+        "custom/browser",
         "sway/window"
     ],
     "modules-center": [
@@ -22,6 +23,11 @@
         "format": " 🌌 Vellux ",
         "tooltip": false,
         "on-click": "wofi --show drun --conf /etc/vellux/wofi/config --style /etc/vellux/wofi/style.css"
+    },
+    "custom/browser": {
+        "format": " 🌐 Web ",
+        "tooltip": "Launch Web Browser (Google)",
+        "on-click": "sh -c 'which chromium-browser chromium google-chrome firefox 2>/dev/null | head -n 1 | xargs -r -I {} {} https://www.google.com'"
     },
     "sway/window": {
         "max-length": 50,
