@@ -257,8 +257,21 @@ grep -qx 'live-boot' /etc/initramfs-tools/modules 2>/dev/null || echo "live-boot
 echo "CRYPTSETUP=y" >> /etc/cryptsetup-initramfs/conf-hook 2>/dev/null || true
 
 # Plymouth temasi (sifre istemi dahil) ve initramfs
-plymouth-set-default-theme vellux
-update-initramfs -c -k all
+install -d /etc/plymouth
+cat > /etc/plymouth/plymouthd.conf <<'EOF'
+[Daemon]
+Theme=vellux
+ShowDelay=0
+DeviceTimeout=8
+EOF
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+    plymouth-set-default-theme vellux
+else
+    update-alternatives --quiet --install /usr/share/plymouth/themes/default.plymouth default.plymouth \
+        /usr/share/plymouth/themes/vellux/vellux.plymouth 200
+    update-alternatives --quiet --set default.plymouth /usr/share/plymouth/themes/vellux/vellux.plymouth
+fi
+update-initramfs -u -k all
 
 # Kernel / initrd'e sabit yol (ISO uretimi icin)
 ls -1 /boot
