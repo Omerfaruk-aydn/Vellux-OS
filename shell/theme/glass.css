@@ -1,63 +1,96 @@
-/* Vellux OS System-wide Glassmorphism & Core Tokens */
+/* ==============================================================================
+   VELLUX HUMAN INTERFACE DESIGN SYSTEM (VHIG) — MASTER CSS TOKENS
+   Target: Pure Wayland Desktop Shell, 120Hz/144Hz Adaptive Motion
+   WCAG AAA Compliant Text Over Glass Surfaces
+   ============================================================================== */
 
 :root {
-  /* Surface Tokens */
-  --vx-canvas-bg: #05070e;
-  --vx-glass-thin: rgba(255, 255, 255, 0.08);
-  --vx-glass-regular: rgba(255, 255, 255, 0.12);
-  --vx-glass-thick: rgba(255, 255, 255, 0.20);
-  --vx-glass-dark-tile: rgba(18, 24, 42, 0.65);
+  /* Surface Canvases */
+  --vx-canvas-pure-black: #000000;
+  --vx-canvas-space: #07090f;
+  --vx-canvas-surface: #0c0f1a;
 
-  /* Specular Light Borders */
-  --vx-border-glass: 1px solid rgba(255, 255, 255, 0.18);
-  --vx-border-top-highlight: 1px solid rgba(255, 255, 255, 0.38);
-  --vx-border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+  /* Engineered Glass Materials (Luminance Clamped for Contrast) */
+  --vx-mat-glass-ultra-thin: rgba(255, 255, 255, 0.04);
+  --vx-mat-glass-thin: rgba(255, 255, 255, 0.07);
+  --vx-mat-glass-thick: rgba(18, 22, 34, 0.74);
+  --vx-mat-glass-window: rgba(14, 18, 28, 0.84);
+  --vx-mat-glass-window-inactive: rgba(10, 13, 22, 0.92);
+  --vx-mat-glass-menu: rgba(22, 28, 44, 0.86);
 
-  /* Real-Time Dual-Kawase Simulation Filter */
-  --vx-blur-sm: blur(12px) saturate(140%);
-  --vx-blur-md: blur(20px) saturate(160%);
-  --vx-blur-lg: blur(32px) saturate(180%);
+  /* Micro-Interactions & Interactive States */
+  --vx-state-hover: rgba(255, 255, 255, 0.08);
+  --vx-state-active: rgba(255, 255, 255, 0.14);
+  --vx-state-focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.45);
 
-  /* System Accents */
-  --vx-accent-blue: #0a84ff;
-  --vx-accent-blue-glow: 0 0 20px rgba(10, 132, 255, 0.45);
-  --vx-accent-cyan: #30d158;
-  --vx-accent-purple: #bf5af2;
+  /* Specular Lighting & Borders (Precision Top-Lit Optical Physics) */
+  --vx-border-specular-top: rgba(255, 255, 255, 0.22);
+  --vx-border-specular-bottom: rgba(255, 255, 255, 0.04);
+  --vx-border-hairline: 1px solid rgba(255, 255, 255, 0.12);
+  --vx-border-separator: 1px solid rgba(255, 255, 255, 0.06);
 
-  /* Typography */
-  --vx-font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter Display', system-ui, sans-serif;
-  --vx-font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
-  --vx-font-mono: 'SF Mono', 'JetBrains Mono', monospace;
+  /* Dual-Kawase Real-Time GPU Blur Simulators */
+  --vx-filter-glass-dock: blur(36px) saturate(160%) brightness(105%);
+  --vx-filter-glass-window: blur(28px) saturate(145%) brightness(102%);
+  --vx-filter-glass-bar: blur(20px) saturate(140%) brightness(100%);
+  --vx-filter-glass-popup: blur(32px) saturate(170%) brightness(105%);
 
-  /* Text Colors */
+  /* System Accents & Functional Colors */
+  --vx-color-accent: #0a84ff;
+  --vx-color-accent-subtle: rgba(10, 132, 255, 0.15);
+  --vx-color-success: #30d158;
+  --vx-color-warning: #ffd60a;
+  --vx-color-danger: #ff453a;
+  --vx-color-indigo: #5e5ce6;
+
+  /* Typography Colors (Calibrated for High Contrast) */
   --vx-text-primary: #ffffff;
-  --vx-text-secondary: rgba(255, 255, 255, 0.72);
-  --vx-text-tertiary: rgba(255, 255, 255, 0.45);
+  --vx-text-secondary: rgba(255, 255, 255, 0.76);
+  --vx-text-tertiary: rgba(255, 255, 255, 0.48);
+  --vx-text-quaternary: rgba(255, 255, 255, 0.28);
 
-  /* Radii */
+  /* Radii Geometry Scale */
+  --vx-radius-xs: 5px;
   --vx-radius-sm: 8px;
-  --vx-radius-md: 14px;
-  --vx-radius-window: 18px;
-  --vx-radius-dock: 22px;
+  --vx-radius-md: 12px;
+  --vx-radius-window: 16px;
+  --vx-radius-dock: 20px;
   --vx-radius-pill: 9999px;
 
-  /* Shadows */
-  --vx-shadow-dock: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  --vx-shadow-panel: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+  /* Optical Shadow Scale (Ambient Occlusion + Directional Drop) */
+  --vx-shadow-dock: 
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.25) inset;
+  
+  --vx-shadow-window:
+    0 32px 80px rgba(0, 0, 0, 0.60),
+    0 12px 30px rgba(0, 0, 0, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.20) inset;
+
+  --vx-shadow-sheet:
+    0 20px 48px rgba(0, 0, 0, 0.55),
+    0 6px 16px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 255, 255, 0.22) inset;
+
+  /* Fonts */
+  --vx-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter Display", "Geist", system-ui, sans-serif;
+  --vx-font-mono: "SF Mono", "JetBrains Mono", "Cascadia Code", monospace;
 }
 
-/* Base Reset for Vellux Human Interface */
+/* Reset & Universal Rules */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  user-select: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
 }
 
 body {
-  font-family: var(--vx-font-text);
-  background-color: var(--vx-canvas-bg);
+  font-family: var(--vx-font-sans);
+  background-color: var(--vx-canvas-space);
   color: var(--vx-text-primary);
   overflow: hidden;
   width: 100vw;
