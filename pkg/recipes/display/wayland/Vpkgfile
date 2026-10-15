@@ -1,0 +1,23 @@
+# Vellux OS Package Recipe: Wayland Display Protocol Server & Client
+NAME="wayland"
+VERSION="1.23.1"
+RELEASE="1"
+DESCRIPTION="Core Wayland display server protocol and IPC library"
+HOMEPAGE="https://wayland.freedesktop.org/"
+LICENSE="MIT"
+DEPENDS=("glibc" "libffi" "expat" "libxml2")
+MAKEDEPENDS=("meson" "ninja" "pkg-config")
+SOURCE="https://gitlab.freedesktop.org/wayland/wayland/-/releases/1.23.1/downloads/wayland-1.23.1.tar.xz"
+SHA256="4057e05697dbe2ff349a26d70c487fb6f6b539c878e1cd0cc4c688849b27a3c3"
+
+build() {
+    meson setup build \
+        --prefix=/usr \
+        --buildtype=release \
+        -Ddocumentation=false
+    ninja -C build
+}
+
+package() {
+    DESTDIR="${PKG_DEST}" ninja -C build install
+}

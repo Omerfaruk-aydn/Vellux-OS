@@ -1,0 +1,29 @@
+# Vellux OS Package Recipe: Linux Kernel (Low-Latency Optimized)
+NAME="linux-vellux"
+VERSION="6.12.9"
+RELEASE="1"
+DESCRIPTION="The Linux Kernel with low-latency preemption and Vellux Wayland performance tuning"
+HOMEPAGE="https://kernel.org/"
+LICENSE="GPL-2.0-only"
+DEPENDS=("kmod" "linux-firmware")
+MAKEDEPENDS=("gcc" "binutils" "make" "bc" "bison" "flex" "openssl" "elfutils")
+SOURCE="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.9.tar.xz"
+SHA256="c8c5c4f2bb734d8ef27918f6733ec53bbab417f7663e0fa471d24c0d0246a482"
+
+build() {
+    # Apply Vellux low-latency configuration:
+    # CONFIG_PREEMPT=y
+    # CONFIG_HZ_1000=y
+    # CONFIG_DRM_AMDGPU=m, CONFIG_DRM_NOUVEAU=m, CONFIG_DRM_I915=m
+    make defconfig
+    scripts/config --enable CONFIG_PREEMPT
+    scripts/config --set-val CONFIG_HZ 1000
+    scripts/config --enable CONFIG_HZ_1000
+    make -j$(nproc) bzImage modules
+}
+
+package() {
+    make INSTALL_MOD_PATH="${PKG_DEST}/usr" modules_install
+    install -Dm644 arch/x86/boot/bzImage "${PKG_DEST}/boot/vmlinuz-vellux"
+    install -Dm644 System.map "${PKG_DEST}/boot/System.map-vellux"
+}

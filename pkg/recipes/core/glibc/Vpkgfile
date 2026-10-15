@@ -1,0 +1,30 @@
+# Vellux OS Package Recipe: GNU C Library (Glibc)
+NAME="glibc"
+VERSION="2.40"
+RELEASE="1"
+DESCRIPTION="GNU C Library for the Vellux OS native userland"
+HOMEPAGE="https://gnu.org/software/libc/"
+LICENSE="LGPL-2.1-or-later"
+DEPENDS=("linux-api-headers")
+MAKEDEPENDS=("gcc" "binutils" "make" "bison" "python3" "gawk")
+SOURCE="https://ftp.gnu.org/gnu/glibc/glibc-2.40.tar.xz"
+SHA256="19a7989906de6052308722b5e28a5ffbfb692550bf228bc9910d6168dc042071"
+
+build() {
+    mkdir -p build && cd build
+    ../configure \
+        --prefix=/usr \
+        --enable-kernel=5.4 \
+        --enable-stack-protector=strong \
+        --disable-werror \
+        --enable-cet
+    make -j$(nproc)
+}
+
+package() {
+    cd build
+    make DESTDIR="${PKG_DEST}" install
+    # Install standard ld.so.conf
+    mkdir -p "${PKG_DEST}/etc"
+    echo -e "/usr/local/lib\n/usr/lib" > "${PKG_DEST}/etc/ld.so.conf"
+}
