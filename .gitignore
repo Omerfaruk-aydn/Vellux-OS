@@ -1,0 +1,29 @@
+# Build artifacts
+dist/
+build/
+*.tar.gz
+*.tar.xz
+*.tar.zst
+*.vpkg
+*.iso
+
+# Node / JS
+node_modules/
+.npm/
+
+# C / C++ / Rust
+*.o
+*.a
+*.so
+target/
+
+# System / OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Virtualization / ISO intermediate
+*.squashfs
+initramfs.cpio.gz
+rootfs/
