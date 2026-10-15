@@ -1,0 +1,23 @@
+[Unit]
+Description=Vellux Wayland Compositor Session
+After=systemd-user-sessions.service plymouth-quit-wait.service
+Conflicts=getty@tty1.service
+
+[Service]
+User=vellux
+WorkingDirectory=/home/vellux
+PAMName=login
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_CURRENT_DESKTOP=Vellux
+Environment=WLR_RENDERER=vulkan
+ExecStart=/usr/bin/vellux-compositor
+Restart=always
+RestartSec=1
+StandardInput=tty
+StandardOutput=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=graphical.target
