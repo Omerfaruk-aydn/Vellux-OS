@@ -66,6 +66,10 @@ sudo chroot "${ROOTFS_DIR}" /bin/bash -c "
         fonts-jetbrains-mono \
         ca-certificates
 
+    # Ensure live-boot is embedded in initramfs
+    echo "live-boot" >> /etc/initramfs-tools/modules
+    update-initramfs -u -k all
+
     # Enable NetworkManager & PipeWire
     systemctl enable NetworkManager.service || true
 

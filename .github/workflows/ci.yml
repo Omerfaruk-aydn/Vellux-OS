@@ -122,14 +122,14 @@ jobs:
           set gfxmode=auto
           terminal_output gfxterm
 
-          menuentry "Start Vellux OS 1.0 (Pure Wayland - 120Hz/144Hz Fluid Glass)" {
+          menuentry "Start Vellux OS 1.0 (Wayland 144Hz Fluid Glass)" {
               echo "Booting Vellux OS Production Kernel..."
-              linux /live/vmlinuz boot=live quiet splash loglevel=3 vt.global_cursor_default=0
+              linux /live/vmlinuz boot=live console=tty0
               initrd /live/initrd.img
           }
 
           menuentry "Start Vellux OS (Safe Graphics / Software Fallback)" {
-              linux /live/vmlinuz boot=live nomodeset
+              linux /live/vmlinuz boot=live nomodeset console=tty0
               initrd /live/initrd.img
           }
           EOF
