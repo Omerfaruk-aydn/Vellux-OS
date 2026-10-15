@@ -1,0 +1,54 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 32,
+    "margin-top": 0,
+    "margin-left": 0,
+    "margin-right": 0,
+    "modules-left": [
+        "custom/logo",
+        "sway/window"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "pulseaudio",
+        "network",
+        "battery",
+        "custom/power"
+    ],
+    "custom/logo": {
+        "format": " 🌌 Vellux ",
+        "tooltip": false,
+        "on-click": "wofi --show drun --conf /etc/vellux/wofi/config --style /etc/vellux/wofi/style.css"
+    },
+    "sway/window": {
+        "max-length": 50,
+        "format": "{}",
+        "separate-outputs": true
+    },
+    "clock": {
+        "format": "{:%a %b %d  %H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+    "pulseaudio": {
+        "format": "🔊 {volume}%",
+        "format-muted": "🔇 Muted",
+        "on-click": "pavucontrol"
+    },
+    "network": {
+        "format-wifi": "📶 {essid}",
+        "format-ethernet": "🌐 Connected",
+        "format-disconnected": "⚠ Offline"
+    },
+    "battery": {
+        "format": "{icon} {capacity}%",
+        "format-icons": ["🪫", "🔋"]
+    },
+    "custom/power": {
+        "format": " ⏻ ",
+        "tooltip": false,
+        "on-click": "swaynag -t warning -m 'Power Off Vellux OS?' -B 'Poweroff' 'systemctl poweroff'"
+    }
+}

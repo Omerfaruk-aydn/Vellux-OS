@@ -9,7 +9,9 @@ WorkingDirectory=/home/vellux
 PAMName=login
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=Vellux
-Environment=WLR_RENDERER=vulkan
+Environment=WLR_NO_HARDWARE_CURSORS=1
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStart=/usr/bin/vellux-compositor
 Restart=always
 RestartSec=1

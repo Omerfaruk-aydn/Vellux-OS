@@ -59,6 +59,12 @@ sudo chroot "${ROOTFS_DIR}" /bin/bash -c "
         libvulkan1 \
         libinput10 \
         seatd \
+        sway \
+        swaybg \
+        waybar \
+        wofi \
+        foot \
+        xwayland \
         pipewire \
         wireplumber \
         network-manager \

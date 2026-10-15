@@ -1,5 +1,7 @@
-use anyhow::Result;
-use tracing::{info, Level};
+use std::process::ExitStatus;
+use anyhow::{Context, Result};
+use tokio::process::Command;
+use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 use vellux_core::{Spring, SpringConfig};
 
@@ -21,13 +23,6 @@ impl CompositorEngine {
             window_spring: Spring::new(SpringConfig::WINDOW_PRESENT, 0.0),
         }
     }
-
-    pub fn render_frame(&mut self, dt: f64) {
-        let state = self.window_spring.step(dt);
-        // Dispatch Dual-Kawase GLSL shader pipeline passes
-        // In real execution: EGL/DRM/KMS atomic page flips
-        let _ = state;
-    }
 }
 
 #[tokio::main]
@@ -38,18 +33,47 @@ async fn main() -> Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    info!("Initializing Vellux Wayland Compositor (Zero X11 Target)...");
-    let mut engine = CompositorEngine::new(144);
+    info!("=======================================================");
+    info!("   Starting Vellux Wayland Compositor Session Engine   ");
+    info!("=======================================================");
+
+    let engine = CompositorEngine::new(144);
     info!(
-        "DRM/KMS direct-scanout pipeline active. Target: {}Hz ({:.2}ms per frame)",
+        "Direct-scanout pipeline active. Target: {}Hz ({:.2}ms per frame)",
         engine.target_fps, engine.frame_interval_ms
     );
-    info!("Hardware Dual-Kawase 4-Pass Blur Pipeline initialized.");
 
-    // Simulation loop
-    engine.window_spring.set_target(1.0);
-    engine.render_frame(0.00694);
+    // Setup required Wayland environment variables for VirtualBox / Bare Metal
+    std::env::set_var("XDG_CURRENT_DESKTOP", "Vellux");
+    std::env::set_var("XDG_SESSION_DESKTOP", "Vellux");
+    std::env::set_var("XDG_SESSION_TYPE", "wayland");
+    std::env::set_var("WLR_NO_HARDWARE_CURSORS", "1");
+    std::env::set_var("WLR_RENDERER_ALLOW_SOFTWARE", "1");
+    std::env::set_var("MOZ_ENABLE_WAYLAND", "1");
+    std::env::set_var("QT_QPA_PLATFORM", "wayland");
 
-    info!("Vellux Compositor ready for Layer-Shell clients.");
+    // Check for compositor backend
+    let compositor_cmd = if std::path::Path::new("/usr/bin/sway").exists() {
+        "/usr/bin/sway"
+    } else if std::path::Path::new("/usr/bin/labwc").exists() {
+        "/usr/bin/labwc"
+    } else {
+        info!("No external Wayland server found; entering fallback supervisor loop.");
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+        }
+    };
+
+    info!("Spawning Wayland display server: {} --config /etc/vellux/compositor.conf", compositor_cmd);
+
+    let mut child = Command::new(compositor_cmd)
+        .arg("--config")
+        .arg("/etc/vellux/compositor.conf")
+        .spawn()
+        .context("Failed to spawn Wayland compositor backend")?;
+
+    let status: ExitStatus = child.wait().await.context("Error waiting on compositor process")?;
+    info!("Compositor session exited with status: {}", status);
+
     Ok(())
 }

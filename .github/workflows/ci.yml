@@ -85,10 +85,18 @@ jobs:
           sudo cp bin-artifacts/vellux-files rootfs/usr/bin/
           sudo cp bin-artifacts/vellux-settings rootfs/usr/bin/
 
-          # Install compositor configurations & GLSL shaders
-          sudo mkdir -p rootfs/etc/vellux/shaders
+          # Install compositor configurations, waybar, wofi & GLSL shaders
+          sudo mkdir -p rootfs/etc/vellux/{shaders,waybar,wofi}
+          sudo cp compositor/config/sway.conf rootfs/etc/vellux/compositor.conf
           sudo cp compositor/config/vellux-comp.conf rootfs/etc/vellux/
           sudo cp compositor/shaders/dual_kawase.frag rootfs/etc/vellux/shaders/
+          sudo cp shell/waybar/config.jsonc rootfs/etc/vellux/waybar/
+          sudo cp shell/waybar/style.css rootfs/etc/vellux/waybar/
+          sudo cp shell/wofi/config rootfs/etc/vellux/wofi/
+          sudo cp shell/wofi/style.css rootfs/etc/vellux/wofi/
+
+          # Setup user permissions
+          sudo chroot rootfs chown -R vellux:vellux /home/vellux || true
 
           # Install systemd session unit for automatic graphical login
           sudo cp core/services/vellux-session.service rootfs/etc/systemd/system/

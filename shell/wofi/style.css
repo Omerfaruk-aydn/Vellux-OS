@@ -1,0 +1,54 @@
+/* Vellux Spotlight HUD Glass Style for Wofi */
+
+window {
+    margin: 0px;
+    background-color: rgba(18, 22, 34, 0.90);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 16px;
+    font-family: "Inter", "SF Pro Display", -apple-system, sans-serif;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+#input {
+    margin: 12px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#input:focus {
+    border: 1px solid #0a84ff;
+    box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.35);
+}
+
+#inner-box {
+    margin: 6px 12px 12px 12px;
+    background-color: transparent;
+}
+
+#outer-box {
+    margin: 0px;
+    background-color: transparent;
+}
+
+#text {
+    margin: 5px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#entry {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background-color: transparent;
+    transition: background-color 0.1s ease;
+}
+
+#entry:selected {
+    background-color: #0a84ff;
+    color: #ffffff;
+}
