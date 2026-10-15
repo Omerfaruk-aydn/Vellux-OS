@@ -1,0 +1,43 @@
+[workspace]
+members = [
+    "crates/vellux-core",
+    "crates/vellux-pkg",
+    "crates/vellux-compositor",
+    "crates/vellux-shell",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Ömer Faruk Aydın <omerfarukaydin3455@gmail.com>", "Vellux OS Core Team"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Omerfaruk-aydn/Vellux-OS"
+
+[workspace.dependencies]
+# Logging & Diagnostics
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Serialization & Cryptography
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+zstd = "0.13"
+tar = "0.4"
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Asynchronous Runtime & Networking
+tokio = { version = "1.38", features = ["full"] }
+reqwest = { version = "0.12", features = ["stream", "rustls-tls"], default-features = false }
+
+# Wayland Protocols & Display Stack (Pure Wayland)
+wayland-client = "0.31"
+wayland-protocols = { version = "0.31", features = ["client"] }
+wayland-protocols-wlr = { version = "0.2", features = ["client"] }
+
+# Math & Spring Physics
+glam = "0.27"
+thiserror = "1.0"
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive", "cargo"] }

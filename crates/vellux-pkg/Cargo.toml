@@ -1,0 +1,25 @@
+[package]
+name = "vellux-pkg"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Vellux OS Official Package Management Engine (vellux-pkg)"
+
+[[bin]]
+name = "vellux-pkg"
+path = "src/main.rs"
+
+[dependencies]
+vellux-core = { path = "../vellux-core" }
+clap.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+zstd.workspace = true
+tar.workspace = true
+rusqlite.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
