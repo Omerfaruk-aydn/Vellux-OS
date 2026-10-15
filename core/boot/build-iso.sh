@@ -63,6 +63,16 @@ SUPPORT_URL="https://github.com/Omerfaruk-aydn/Vellux-OS/issues"
 EOF
 sudo chroot "${ROOTFS_DIR}" chown -R live:live /home/live || true
 
+# Live oturum servisini etkinlestir (unit dosyasi yukarida yerlestirildi)
+sudo chroot "${ROOTFS_DIR}" systemctl enable vellux-session.service
+sudo chroot "${ROOTFS_DIR}" systemctl set-default graphical.target
+if ! sudo test -L "${ROOTFS_DIR}/etc/systemd/system/graphical.target.wants/vellux-session.service"; then
+    echo "HATA: vellux-session.service etkinlestirilemedi" >&2
+    exit 1
+fi
+# Kurulu sistemde greetd calisacak mi? (drop-in ile live'da kapali)
+sudo test -f "${ROOTFS_DIR}/etc/systemd/system/greetd.service.d/10-not-live.conf"
+
 info "=== [4/4] SquashFS ve ISO ==="
 sudo rm -f iso_root/live/filesystem.squashfs
 sudo mksquashfs "${ROOTFS_DIR}" iso_root/live/filesystem.squashfs \
