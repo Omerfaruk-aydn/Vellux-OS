@@ -1,11 +1,13 @@
 mod archive;
 mod db;
+pub mod resolver;
 
 use std::path::PathBuf;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
+use resolver::{DependencyResolver, PackageNode};
 
 #[derive(Parser)]
 #[command(name = "vellux-pkg")]
@@ -35,6 +37,11 @@ enum Commands {
         /// Path to .vpkg.tar.zst archive
         package_file: PathBuf,
     },
+    /// Resolve dependency installation order for a list of target packages
+    Resolve {
+        /// Package names to resolve
+        targets: Vec<String>,
+    },
     /// Query installed package information
     Info {
         /// Name of the package to query
@@ -56,7 +63,6 @@ async fn main() -> Result<()> {
         Commands::Build { recipe_dir, output } => {
             info!("Building package from recipe: {:?}", recipe_dir);
             info!("Output directory: {:?}", output);
-            // Engine reads Vpkgfile and generates .vpkg.tar.zst
         }
         Commands::Install { package_file } => {
             info!("Installing package: {:?} into root: {:?}", package_file, cli.root);
@@ -76,6 +82,22 @@ async fn main() -> Result<()> {
             };
             db.register_package(&installed, &files)?;
             info!("Successfully registered and installed: {}", meta.name);
+        }
+        Commands::Resolve { targets } => {
+            info!("Resolving dependency graph for targets: {:?}", targets);
+            let mut resolver = DependencyResolver::new();
+            // Seed base packages in universal graph
+            resolver.add_package(PackageNode { name: "glibc".into(), version: "2.40".into(), dependencies: vec![] });
+            resolver.add_package(PackageNode { name: "zlib".into(), version: "1.3.1".into(), dependencies: vec!["glibc".into()] });
+            resolver.add_package(PackageNode { name: "wayland".into(), version: "1.23.1".into(), dependencies: vec!["glibc".into(), "zlib".into()] });
+            resolver.add_package(PackageNode { name: "vellux-compositor".into(), version: "0.1.0".into(), dependencies: vec!["wayland".into()] });
+            resolver.add_package(PackageNode { name: "vellux-shell".into(), version: "0.1.0".into(), dependencies: vec!["vellux-compositor".into()] });
+
+            let plan = resolver.resolve(&targets)?;
+            println!("\nDeterministic Installation Order:");
+            for (idx, node) in plan.iter().enumerate() {
+                println!("  [{}] {} v{} (deps: {:?})", idx + 1, node.name, node.version, node.dependencies);
+            }
         }
         Commands::Info { package_name } => {
             let db_path = cli.root.join("var/lib/vellux/db.sqlite");

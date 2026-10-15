@@ -1,0 +1,19 @@
+[package]
+name = "vellux-term"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Vellux OS Native GPU-Accelerated Glass Terminal (PTY Engine)"
+
+[[bin]]
+name = "vellux-term"
+path = "src/main.rs"
+
+[dependencies]
+vellux-core = { path = "../vellux-core" }
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
