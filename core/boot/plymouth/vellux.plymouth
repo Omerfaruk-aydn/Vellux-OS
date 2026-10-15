@@ -1,0 +1,14 @@
+[Plymouth Theme]
+Name=Vellux Glow
+Description=Flicker-Free Pure Wayland Plymouth Theme for Vellux OS
+ModuleName=two-step
+
+[two-step]
+ImageDir=/usr/share/plymouth/themes/vellux
+HorizontalAlignment=.5
+VerticalAlignment=.5
+Transition=cross-fade
+TransitionDuration=0.35
+BackgroundStartColor=0x05070e
+BackgroundEndColor=0x0a0d18
+ProgressBarShowPercent=false
