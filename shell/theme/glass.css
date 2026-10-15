@@ -1,0 +1,65 @@
+/* Vellux OS System-wide Glassmorphism & Core Tokens */
+
+:root {
+  /* Surface Tokens */
+  --vx-canvas-bg: #05070e;
+  --vx-glass-thin: rgba(255, 255, 255, 0.08);
+  --vx-glass-regular: rgba(255, 255, 255, 0.12);
+  --vx-glass-thick: rgba(255, 255, 255, 0.20);
+  --vx-glass-dark-tile: rgba(18, 24, 42, 0.65);
+
+  /* Specular Light Borders */
+  --vx-border-glass: 1px solid rgba(255, 255, 255, 0.18);
+  --vx-border-top-highlight: 1px solid rgba(255, 255, 255, 0.38);
+  --vx-border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Real-Time Dual-Kawase Simulation Filter */
+  --vx-blur-sm: blur(12px) saturate(140%);
+  --vx-blur-md: blur(20px) saturate(160%);
+  --vx-blur-lg: blur(32px) saturate(180%);
+
+  /* System Accents */
+  --vx-accent-blue: #0a84ff;
+  --vx-accent-blue-glow: 0 0 20px rgba(10, 132, 255, 0.45);
+  --vx-accent-cyan: #30d158;
+  --vx-accent-purple: #bf5af2;
+
+  /* Typography */
+  --vx-font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter Display', system-ui, sans-serif;
+  --vx-font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+  --vx-font-mono: 'SF Mono', 'JetBrains Mono', monospace;
+
+  /* Text Colors */
+  --vx-text-primary: #ffffff;
+  --vx-text-secondary: rgba(255, 255, 255, 0.72);
+  --vx-text-tertiary: rgba(255, 255, 255, 0.45);
+
+  /* Radii */
+  --vx-radius-sm: 8px;
+  --vx-radius-md: 14px;
+  --vx-radius-window: 18px;
+  --vx-radius-dock: 22px;
+  --vx-radius-pill: 9999px;
+
+  /* Shadows */
+  --vx-shadow-dock: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  --vx-shadow-panel: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+}
+
+/* Base Reset for Vellux Human Interface */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--vx-font-text);
+  background-color: var(--vx-canvas-bg);
+  color: var(--vx-text-primary);
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
