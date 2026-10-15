@@ -5,6 +5,8 @@ members = [
     "crates/vellux-compositor",
     "crates/vellux-shell",
     "crates/vellux-term",
+    "crates/vellux-files",
+    "crates/vellux-settings",
 ]
 resolver = "2"
 

@@ -1,0 +1,20 @@
+[package]
+name = "vellux-files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Vellux OS Native Glass File Manager (Finder equivalent)"
+
+[[bin]]
+name = "vellux-files"
+path = "src/main.rs"
+
+[dependencies]
+vellux-core = { path = "../vellux-core" }
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true

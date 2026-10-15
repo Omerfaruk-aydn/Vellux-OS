@@ -42,6 +42,8 @@ jobs:
             target/release/vellux-compositor
             target/release/vellux-shell
             target/release/vellux-term
+            target/release/vellux-files
+            target/release/vellux-settings
 
   # ============================================================================
   # STEP 2: ASSEMBLE LIVE ROOTFS & MASTER BOOTABLE HYBRID ISO
@@ -75,6 +77,8 @@ jobs:
           cp bin-artifacts/vellux-compositor rootfs/usr/bin/
           cp bin-artifacts/vellux-shell rootfs/usr/bin/
           cp bin-artifacts/vellux-term rootfs/usr/bin/
+          cp bin-artifacts/vellux-files rootfs/usr/bin/
+          cp bin-artifacts/vellux-settings rootfs/usr/bin/
           
           # Install compositor configurations & GLSL shaders
           mkdir -p rootfs/etc/vellux/shaders
@@ -138,7 +142,10 @@ jobs:
             - **Shaders:** Hardware-accelerated Dual-Kawase GLSL background blur
             - **Physics:** Symplectic semi-implicit Euler Hooke mass-spring solver
             - **Package Engine:** `vellux-pkg` with SQLite3 WAL database & topological dependency resolver
-            - **Native Terminal:** `vellux-term` GPU-accelerated glass terminal
+            - **Native Apps Suite:**
+              * `vellux-term`: GPU-accelerated glass terminal
+              * `vellux-files`: Native glass file manager (Finder)
+              * `vellux-settings`: Hardware & visual display preferences
           files: dist/Vellux-OS-1.0-x86_64.iso
           draft: false
           prerelease: true
