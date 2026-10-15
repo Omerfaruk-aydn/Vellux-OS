@@ -1,0 +1,20 @@
+# Vellux OS Package Recipe: zlib (High-performance compression library)
+NAME="zlib"
+VERSION="1.3.1"
+RELEASE="1"
+DESCRIPTION="A Massively Spiffy Yet Delicately Unobtrusive Compression Library"
+HOMEPAGE="https://zlib.net/"
+LICENSE="Zlib"
+DEPENDS=("glibc")
+MAKEDEPENDS=("gcc" "make")
+SOURCE="https://zlib.net/zlib-1.3.1.tar.gz"
+SHA256="9a93b2b7dfdac77ceba5a55ff54c269e7ea8ffea344d5c54d436608f3203446d"
+
+build() {
+    ./configure --prefix=/usr --shared
+    make -j$(nproc)
+}
+
+package() {
+    make DESTDIR="${PKG_DEST}" install
+}
