@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vellux OS — Human Interface Environment</title>
+  <link rel="stylesheet" href="theme/glass.css">
+  <style>
+    /* Desktop Canvas Backdrop */
+    .vx-desktop {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 40%, #05070e 100%);
+      overflow: hidden;
+    }
+
+    /* Ambient Wallpaper Light Orbs */
+    .vx-ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .vx-orb-1 {
+      width: 500px;
+      height: 500px;
+      top: 10%;
+      left: 15%;
+      background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+    }
+    .vx-orb-2 {
+      width: 600px;
+      height: 600px;
+      bottom: 5%;
+      right: 10%;
+      background: radial-gradient(circle, #0ea5e9 0%, transparent 70%);
+    }
+
+    /* Top Status Bar */
+    .vx-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: rgba(10, 13, 24, 0.45);
+      backdrop-filter: var(--vx-blur-md);
+      -webkit-backdrop-filter: var(--vx-blur-md);
+      border-bottom: var(--vx-border-subtle);
+      z-index: 1000;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .vx-bar-left, .vx-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .vx-bar-logo {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+    .vx-bar-logo:hover {
+      background: var(--vx-glass-thin);
+    }
+
+    .vx-bar-app-name {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .vx-bar-item {
+      color: var(--vx-text-secondary);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .vx-bar-item:hover {
+      color: #fff;
+      background: var(--vx-glass-thin);
+    }
+
+    /* Floating Fluid Dock */
+    .vx-dock-wrapper {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+
+    .vx-dock {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: var(--vx-blur-lg);
+      -webkit-backdrop-filter: var(--vx-blur-lg);
+      border-radius: var(--vx-radius-dock);
+      border: var(--vx-border-glass);
+      box-shadow: var(--vx-shadow-dock);
+      transition: padding 0.15s ease;
+    }
+
+    .vx-dock-item {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transform-origin: bottom center;
+      will-change: transform, width, height;
+      transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .vx-dock-icon {
+      width: 100%;
+      height: 100%;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+
+    .vx-dock-indicator {
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--vx-text-primary);
+      opacity: 0.8;
+    }
+
+    /* Control Center Sheet Drawer */
+    .vx-control-center {
+      position: absolute;
+      top: 40px;
+      right: 16px;
+      width: 340px;
+      padding: 16px;
+      background: rgba(18, 24, 42, 0.65);
+      backdrop-filter: var(--vx-blur-lg);
+      -webkit-backdrop-filter: var(--vx-blur-lg);
+      border-radius: var(--vx-radius-window);
+      border: var(--vx-border-glass);
+      box-shadow: var(--vx-shadow-panel);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 1100;
+      opacity: 0;
+      transform: translateY(-10px) scale(0.96);
+      pointer-events: none;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .vx-control-center.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .vx-cc-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .vx-cc-tile {
+      background: var(--vx-glass-thin);
+      border: var(--vx-border-subtle);
+      border-radius: var(--vx-radius-md);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .vx-cc-tile:hover {
+      background: var(--vx-glass-regular);
+    }
+    .vx-cc-tile.active {
+      background: var(--vx-accent-blue);
+      border-color: var(--vx-accent-blue);
+      box-shadow: var(--vx-accent-blue-glow);
+    }
+
+    .vx-cc-tile-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .vx-cc-slider-card {
+      background: var(--vx-glass-thin);
+      border: var(--vx-border-subtle);
+      border-radius: var(--vx-radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .vx-slider-track {
+      position: relative;
+      width: 100%;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--vx-radius-pill);
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .vx-slider-fill {
+      height: 100%;
+      background: #ffffff;
+      border-radius: var(--vx-radius-pill);
+      width: 75%;
+      pointer-events: none;
+    }
+
+    /* Demo Floating Glass App Window */
+    .vx-window {
+      position: absolute;
+      top: 100px;
+      left: 120px;
+      width: 580px;
+      height: 380px;
+      background: rgba(18, 24, 42, 0.60);
+      backdrop-filter: var(--vx-blur-md);
+      -webkit-backdrop-filter: var(--vx-blur-md);
+      border-radius: var(--vx-radius-window);
+      border: var(--vx-border-glass);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .vx-window-titlebar {
+      height: 42px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: var(--vx-border-subtle);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .vx-win-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+    }
+    .vx-btn-close { background: #ff5f56; }
+    .vx-btn-min { background: #ffbd2e; }
+    .vx-btn-max { background: #27c93f; }
+
+    .vx-window-content {
+      padding: 24px;
+      color: var(--vx-text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="vx-desktop" id="desktop">
+    <!-- Ambient Light Field -->
+    <div class="vx-ambient-orb vx-orb-1"></div>
+    <div class="vx-ambient-orb vx-orb-2"></div>
+
+    <!-- Top Status Bar -->
+    <header class="vx-bar">
+      <div class="vx-bar-left">
+        <div class="vx-bar-logo">
+          <svg width="16" height="16" viewBox="0 0 100 100" fill="none">
+            <polygon points="50,10 90,90 70,90 50,45 30,90 10,90" fill="#38bdf8" />
+          </svg>
+        </div>
+        <span class="vx-bar-app-name">Finder</span>
+        <span class="vx-bar-item">File</span>
+        <span class="vx-bar-item">Edit</span>
+        <span class="vx-bar-item">View</span>
+        <span class="vx-bar-item">Window</span>
+        <span class="vx-bar-item">Help</span>
+      </div>
+
+      <div class="vx-bar-right">
+        <span class="vx-bar-item" id="batteryStatus">100% ⚡</span>
+        <span class="vx-bar-item" id="wifiStatus">Wi-Fi</span>
+        <span class="vx-bar-item" id="ccToggle" style="font-weight: 600;">⌘ Control</span>
+        <span class="vx-bar-item" id="clock">12:00 PM</span>
+      </div>
+    </header>
+
+    <!-- Sample Native Window -->
+    <div class="vx-window">
+      <div class="vx-window-titlebar">
+        <div class="vx-win-btn vx-btn-close"></div>
+        <div class="vx-win-btn vx-btn-min"></div>
+        <div class="vx-win-btn vx-btn-max"></div>
+        <span style="margin-left: auto; margin-right: auto; font-size: 12px; font-weight: 600; color: var(--vx-text-secondary);">Vellux Architecture Monitor</span>
+      </div>
+      <div class="vx-window-content">
+        <h2 style="color: #fff; margin-bottom: 8px;">Welcome to Vellux OS</h2>
+        <p>Vellux Human Interface Environment is running on pure Wayland composite pipeline. Notice the dynamic background blur under this window and the mass-spring interaction on the dock below.</p>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <div style="padding: 10px 14px; background: rgba(255,255,255,0.06); border-radius: 10px; border: var(--vx-border-subtle);">
+            <div style="font-size: 11px; color: var(--vx-text-tertiary);">FRAME LATENCY</div>
+            <div style="font-size: 18px; font-weight: 700; color: #34d399;">6.94 ms (144Hz)</div>
+          </div>
+          <div style="padding: 10px 14px; background: rgba(255,255,255,0.06); border-radius: 10px; border: var(--vx-border-subtle);">
+            <div style="font-size: 11px; color: var(--vx-text-tertiary);">COMPOSITOR</div>
+            <div style="font-size: 18px; font-weight: 700; color: #38bdf8;">Pure Wayland</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Center Drawer -->
+    <div class="vx-control-center" id="controlCenter">
+      <div class="vx-cc-grid-2">
+        <div class="vx-cc-tile active" id="tileWifi">
+          <div class="vx-cc-tile-icon">📶</div>
+          <div>
+            <div style="font-weight: 600; font-size: 13px;">Wi-Fi</div>
+            <div style="font-size: 11px; opacity: 0.8;">Vellux-5G</div>
+          </div>
+        </div>
+        <div class="vx-cc-tile active" id="tileBt">
+          <div class="vx-cc-tile-icon">ᛒ</div>
+          <div>
+            <div style="font-weight: 600; font-size: 13px;">Bluetooth</div>
+            <div style="font-size: 11px; opacity: 0.8;">AirPods Pro</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brightness Slider -->
+      <div class="vx-cc-slider-card">
+        <div style="font-size: 12px; font-weight: 600; display: flex; justify-content: space-between;">
+          <span>Display Brightness</span>
+          <span style="color: var(--vx-text-tertiary);">85%</span>
+        </div>
+        <div class="vx-slider-track">
+          <div class="vx-slider-fill" style="width: 85%;"></div>
+        </div>
+      </div>
+
+      <!-- Sound Volume Slider -->
+      <div class="vx-cc-slider-card">
+        <div style="font-size: 12px; font-weight: 600; display: flex; justify-content: space-between;">
+          <span>Sound Volume (PipeWire)</span>
+          <span style="color: var(--vx-text-tertiary);">70%</span>
+        </div>
+        <div class="vx-slider-track">
+          <div class="vx-slider-fill" style="width: 70%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Fluid Glass Dock -->
+    <div class="vx-dock-wrapper">
+      <nav class="vx-dock" id="fluidDock">
+        <div class="vx-dock-item" data-app="Finder">
+          <svg class="vx-dock-icon" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="22" fill="#0284c7" />
+            <path d="M30 35 C 30 20, 70 20, 70 35 C 70 75, 50 80, 50 80 C 50 80, 30 75, 30 35" fill="none" stroke="#fff" stroke-width="6" />
+            <circle cx="42" cy="42" r="5" fill="#fff" />
+            <circle cx="58" cy="42" r="5" fill="#fff" />
+          </svg>
+          <div class="vx-dock-indicator"></div>
+        </div>
+
+        <div class="vx-dock-item" data-app="Terminal">
+          <svg class="vx-dock-icon" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="22" fill="#1e293b" />
+            <polyline points="28,35 45,50 28,65" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" />
+            <line x1="52" y1="65" x2="72" y2="65" stroke="#fff" stroke-width="6" stroke-linecap="round" />
+          </svg>
+          <div class="vx-dock-indicator"></div>
+        </div>
+
+        <div class="vx-dock-item" data-app="Browser">
+          <svg class="vx-dock-icon" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="22" fill="#4f46e5" />
+            <circle cx="50" cy="50" r="28" fill="none" stroke="#fff" stroke-width="5" />
+            <polygon points="50,22 56,44 78,50 56,56 50,78 44,56 22,50 44,44" fill="#38bdf8" />
+          </svg>
+          <div class="vx-dock-indicator"></div>
+        </div>
+
+        <div class="vx-dock-item" data-app="Settings">
+          <svg class="vx-dock-icon" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="22" fill="#475569" />
+            <circle cx="50" cy="50" r="16" fill="none" stroke="#fff" stroke-width="8" />
+          </svg>
+        </div>
+
+        <div class="vx-dock-item" data-app="AppStore">
+          <svg class="vx-dock-icon" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="22" fill="#2563eb" />
+            <text x="50" y="68" font-size="52" font-weight="900" text-anchor="middle" fill="#fff" font-family="sans-serif">A</text>
+          </svg>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SpringSimulation, SpringProfiles } from './theme/spring.js';
+
+    // Clock update
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Control Center Toggle
+    const cc = document.getElementById('controlCenter');
+    const ccToggle = document.getElementById('ccToggle');
+    ccToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cc.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!cc.contains(e.target) && e.target !== ccToggle) {
+        cc.classList.remove('open');
+      }
+    });
+
+    // Fish-Eye Spring Magnification on Floating Dock
+    const dock = document.getElementById('fluidDock');
+    const items = Array.from(dock.querySelectorAll('.vx-dock-item'));
+
+    const baseSize = 52;
+    const maxScale = 1.65;
+    const effectRange = 140;
+
+    dock.addEventListener('mousemove', (e) => {
+      const mouseX = e.clientX;
+
+      items.forEach((item) => {
+        const rect = item.getBoundingClientRect();
+        const itemCenter = rect.left + rect.width / 2;
+        const distance = Math.abs(mouseX - itemCenter);
+
+        if (distance < effectRange) {
+          const factor = Math.cos((distance / effectRange) * (Math.PI / 2));
+          const scale = 1 + (maxScale - 1) * Math.pow(factor, 2);
+          item.style.transform = `scale(${scale}) translateY(-${(scale - 1) * 20}px)`;
+        } else {
+          item.style.transform = 'scale(1) translateY(0)';
+        }
+      });
+    });
+
+    dock.addEventListener('mouseleave', () => {
+      items.forEach((item) => {
+        item.style.transform = 'scale(1) translateY(0)';
+      });
+    });
+
+    // Icon Launch Bounce (Spring Physics Simulator)
+    items.forEach((item) => {
+      item.addEventListener('click', () => {
+        const sim = new SpringSimulation(SpringProfiles.dockBounce);
+        sim.current = 0;
+        sim.velocity = -35; // initial kick upwards
+        sim.target = 0;
+
+        let lastTime = performance.now();
+        function animate(now) {
+          const dt = (now - lastTime) / 1000;
+          lastTime = now;
+
+          const state = sim.step(dt);
+          item.style.transform = `translateY(${state.value}px)`;
+
+          if (!state.settled) {
+            requestAnimationFrame(animate);
+          } else {
+            item.style.transform = 'scale(1) translateY(0)';
+          }
+        }
+        requestAnimationFrame(animate);
+      });
+    });
+  </script>
+</body>
+</html>
